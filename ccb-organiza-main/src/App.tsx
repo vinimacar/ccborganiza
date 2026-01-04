@@ -7,6 +7,7 @@ import Dashboard from "./pages/Dashboard";
 import Congregacoes from "./pages/Congregacoes";
 import Ministerio from "./pages/Ministerio";
 import Agenda from "./pages/Agenda";
+import Reforcos from "./pages/Reforcos";
 import Listas from "./pages/Listas";
 import Contatos from "./pages/Contatos";
 import ComingSoon from "./pages/ComingSoon";
@@ -24,7 +25,7 @@ const App = () => (
           <Route path="/" element={<Dashboard />} />
           <Route path="/congregacoes" element={<Congregacoes />} />
           <Route path="/ministerio" element={<Ministerio />} />
-          <Route path="/reforcos" element={<ComingSoon title="Reforços" description="Agendamento de Cultos de Reforços de Coletas por mês, onde os irmãos escolhem a congregação e agenda o atendimento." />} />
+          <Route path="/reforcos" element={<Reforcos />} />
           <Route path="/agenda" element={<Agenda />} />
           <Route path="/resultados" element={<ComingSoon title="Resultados" description="Buscar os Eventos: Batismo, Santa Ceia e Ensaios Regionais, com relatório completo por instrumentos e categorias." />} />
           <Route path="/listas" element={<Listas />} />
