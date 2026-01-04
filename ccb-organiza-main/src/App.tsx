@@ -20,7 +20,7 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <BrowserRouter basename="/">
+      <BrowserRouter basename="/ccborganiza">
         <Routes>
           <Route path="/" element={<Dashboard />} />
           <Route path="/congregacoes" element={<Congregacoes />} />
