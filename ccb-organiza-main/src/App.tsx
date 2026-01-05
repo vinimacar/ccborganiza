@@ -22,7 +22,7 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <BrowserRouter basename="/ccborganiza">
+      <BrowserRouter>
         <Routes>
           <Route path="/" element={<Dashboard />} />
           <Route path="/congregacoes" element={<Congregacoes />} />
