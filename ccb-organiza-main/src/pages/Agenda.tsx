@@ -17,14 +17,7 @@ interface Evento {
   categoria: "batismo" | "ensaio" | "reuniao" | "santa-ceia" | "outros";
 }
 
-const eventosData: Evento[] = [
-  { id: "1", tipo: "Batismo", titulo: "Batismo Regional", data: "2024-01-15", horario: "14:00", local: "Sede Regional", participantes: 23, categoria: "batismo" },
-  { id: "2", tipo: "Santa Ceia", titulo: "Santa Ceia Mensal", data: "2024-01-21", horario: "19:00", local: "Todas as congregações", categoria: "santa-ceia" },
-  { id: "3", tipo: "Ensaio Regional", titulo: "Ensaio para Mocidade", data: "2024-01-28", horario: "09:00", local: "Congregação Central", participantes: 45, categoria: "ensaio" },
-  { id: "4", tipo: "Reunião", titulo: "Reunião Ministerial", data: "2024-02-03", horario: "14:00", local: "Sede Administrativa", participantes: 30, categoria: "reuniao" },
-  { id: "5", tipo: "Ensaio Regional", titulo: "Ensaio DARPE", data: "2024-02-10", horario: "09:00", local: "Congregação Norte", participantes: 60, categoria: "ensaio" },
-  { id: "6", tipo: "Culto", titulo: "Culto GEM", data: "2024-02-14", horario: "19:30", local: "Congregação Sul", categoria: "outros" },
-];
+import { useFirestore } from "@/hooks/useFirestore";
 
 const categoriaColors: Record<string, string> = {
   "batismo": "bg-info text-info-foreground",
@@ -44,11 +37,24 @@ const categoriaBadge: Record<string, string> = {
 
 export default function Agenda() {
   const [selectedTab, setSelectedTab] = useState("todos");
+  const { data: eventosData, loading } = useFirestore<Evento>({ 
+    collectionName: 'eventos' 
+  });
 
   const filteredEventos = eventosData.filter((e) => {
     if (selectedTab === "todos") return true;
     return e.categoria === selectedTab;
   });
+
+  if (loading) {
+    return (
+      <MainLayout>
+        <div className="animate-fade-in flex items-center justify-center min-h-[400px]">
+          <p className="text-muted-foreground">Carregando agenda...</p>
+        </div>
+      </MainLayout>
+    );
+  }
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);

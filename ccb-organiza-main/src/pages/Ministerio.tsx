@@ -2,6 +2,7 @@ import { MainLayout } from "@/components/layout/MainLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
 import {
   Table,
   TableBody,
@@ -18,6 +19,33 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { useFirestore } from "@/hooks/useFirestore";
+import { useToast } from "@/hooks/use-toast";
 
 interface Membro {
   id: string;
@@ -25,17 +53,9 @@ interface Membro {
   ministerio: string;
   congregacao: string;
   telefone: string;
+  email?: string;
   status: "ativo" | "inativo";
 }
-
-const ministerioData: Membro[] = [
-  { id: "1", nome: "João Silva", ministerio: "Ancião", congregacao: "Central", telefone: "(11) 99999-0001", status: "ativo" },
-  { id: "2", nome: "Pedro Santos", ministerio: "Cooperador", congregacao: "Norte", telefone: "(11) 99999-0002", status: "ativo" },
-  { id: "3", nome: "Maria Oliveira", ministerio: "Cooperador de Jovens", congregacao: "Sul", telefone: "(11) 99999-0003", status: "ativo" },
-  { id: "4", nome: "Carlos Lima", ministerio: "Diácono", congregacao: "Central", telefone: "(11) 99999-0004", status: "ativo" },
-  { id: "5", nome: "Ana Costa", ministerio: "Cooperadora de Menores", congregacao: "Norte", telefone: "(11) 99999-0005", status: "inativo" },
-  { id: "6", nome: "José Ferreira", ministerio: "Oficial", congregacao: "Central", telefone: "(11) 99999-0006", status: "ativo" },
-];
 
 const ministerioColors: Record<string, string> = {
   "Ancião": "bg-primary text-primary-foreground",
@@ -46,9 +66,121 @@ const ministerioColors: Record<string, string> = {
   "Oficial": "bg-muted text-muted-foreground",
 };
 
+const ministerioOptions = [
+  "Ancião",
+  "Cooperador",
+  "Cooperador de Jovens",
+  "Cooperadora de Menores",
+  "Diácono",
+  "Oficial",
+  "Organista",
+  "Porteiro",
+  "Secretário",
+];
+
 export default function Ministerio() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterMinisterio, setFilterMinisterio] = useState<string | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [editingMembro, setEditingMembro] = useState<Membro | null>(null);
+  const [viewingMembro, setViewingMembro] = useState<Membro | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const { toast } = useToast();
+  
+  const { data: ministerioData, loading, add, update, remove } = useFirestore<Membro>({ 
+    collectionName: 'ministerio' 
+  });
+
+  const [formData, setFormData] = useState({
+    nome: "",
+    ministerio: "",
+    congregacao: "",
+    telefone: "",
+    email: "",
+    status: "ativo" as "ativo" | "inativo",
+  });
+
+  const handleOpenDialog = (membro?: Membro) => {
+    if (membro) {
+      setEditingMembro(membro);
+      setFormData({
+        nome: membro.nome,
+        ministerio: membro.ministerio,
+        congregacao: membro.congregacao,
+        telefone: membro.telefone,
+        email: membro.email || "",
+        status: membro.status,
+      });
+    } else {
+      setEditingMembro(null);
+      setFormData({
+        nome: "",
+        ministerio: "",
+        congregacao: "",
+        telefone: "",
+        email: "",
+        status: "ativo",
+      });
+    }
+    setIsDialogOpen(true);
+  };
+
+  const handleCloseDialog = () => {
+    setIsDialogOpen(false);
+    setEditingMembro(null);
+  };
+
+  const handleSave = async () => {
+    try {
+      const dataToSave = {
+        ...formData,
+        email: formData.email || undefined,
+      };
+      
+      if (editingMembro) {
+        await update(editingMembro.id, dataToSave);
+        toast({
+          title: "Sucesso!",
+          description: "Membro atualizado com sucesso.",
+        });
+      } else {
+        await add(dataToSave);
+        toast({
+          title: "Sucesso!",
+          description: "Membro adicionado com sucesso.",
+        });
+      }
+      handleCloseDialog();
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Ocorreu um erro ao salvar o membro.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!deletingId) return;
+    
+    try {
+      await remove(deletingId);
+      toast({
+        title: "Sucesso!",
+        description: "Membro excluído com sucesso.",
+      });
+      setIsDeleteDialogOpen(false);
+      setDeletingId(null);
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Ocorreu um erro ao excluir o membro.",
+        variant: "destructive",
+      });
+    }
+  };
 
   const filteredMembros = ministerioData.filter((m) => {
     const matchesSearch = m.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -58,6 +190,16 @@ export default function Ministerio() {
   });
 
   const ministerios = [...new Set(ministerioData.map((m) => m.ministerio))];
+
+  if (loading) {
+    return (
+      <MainLayout>
+        <div className="animate-fade-in flex items-center justify-center min-h-[400px]">
+          <p className="text-muted-foreground">Carregando membros do ministério...</p>
+        </div>
+      </MainLayout>
+    );
+  }
 
   return (
     <MainLayout>
@@ -70,7 +212,7 @@ export default function Ministerio() {
               Gerencie os membros do ministério da região
             </p>
           </div>
-          <Button className="gap-2">
+          <Button className="gap-2" onClick={() => handleOpenDialog()}>
             <Plus size={20} />
             Novo Membro
           </Button>
@@ -161,9 +303,24 @@ export default function Ministerio() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem>Editar</DropdownMenuItem>
-                        <DropdownMenuItem>Ver detalhes</DropdownMenuItem>
-                        <DropdownMenuItem className="text-destructive">Remover</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleOpenDialog(membro)}>
+                          Editar
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => {
+                          setViewingMembro(membro);
+                          setIsDetailsDialogOpen(true);
+                        }}>
+                          Ver detalhes
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          className="text-destructive"
+                          onClick={() => {
+                            setDeletingId(membro.id);
+                            setIsDeleteDialogOpen(true);
+                          }}
+                        >
+                          Remover
+                        </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
@@ -178,6 +335,194 @@ export default function Ministerio() {
             <p className="text-muted-foreground">Nenhum membro encontrado.</p>
           </div>
         )}
+
+        {/* Dialog de Adicionar/Editar */}
+        <Dialog open={isDialogOpen} onOpenChange={handleCloseDialog}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>
+                {editingMembro ? "Editar Membro" : "Novo Membro"}
+              </DialogTitle>
+              <DialogDescription>
+                Preencha os dados do membro do ministério
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="nome">Nome Completo *</Label>
+                <Input
+                  id="nome"
+                  value={formData.nome}
+                  onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
+                  placeholder="Ex: João Silva"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="ministerio">Ministério *</Label>
+                  <Select 
+                    value={formData.ministerio} 
+                    onValueChange={(value) => setFormData({ ...formData, ministerio: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o ministério" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {ministerioOptions.map((m) => (
+                        <SelectItem key={m} value={m}>
+                          {m}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="congregacao">Congregação *</Label>
+                  <Input
+                    id="congregacao"
+                    value={formData.congregacao}
+                    onChange={(e) => setFormData({ ...formData, congregacao: e.target.value })}
+                    placeholder="Ex: Central"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="telefone">Telefone *</Label>
+                  <Input
+                    id="telefone"
+                    value={formData.telefone}
+                    onChange={(e) => setFormData({ ...formData, telefone: e.target.value })}
+                    placeholder="(11) 99999-9999"
+                  />
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="email">E-mail</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    placeholder="exemplo@email.com"
+                  />
+                </div>
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="status">Status *</Label>
+                <Select 
+                  value={formData.status} 
+                  onValueChange={(value: "ativo" | "inativo") => setFormData({ ...formData, status: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ativo">Ativo</SelectItem>
+                    <SelectItem value="inativo">Inativo</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button variant="outline" onClick={handleCloseDialog}>
+                Cancelar
+              </Button>
+              <Button onClick={handleSave}>
+                {editingMembro ? "Atualizar" : "Adicionar"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Dialog de Detalhes */}
+        <Dialog open={isDetailsDialogOpen} onOpenChange={setIsDetailsDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Detalhes do Membro</DialogTitle>
+            </DialogHeader>
+            
+            {viewingMembro && (
+              <div className="grid gap-4 py-4">
+                <div className="grid gap-2">
+                  <Label className="text-muted-foreground">Nome</Label>
+                  <p className="font-medium">{viewingMembro.nome}</p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label className="text-muted-foreground">Ministério</Label>
+                    <Badge className={ministerioColors[viewingMembro.ministerio] || "w-fit"}>
+                      {viewingMembro.ministerio}
+                    </Badge>
+                  </div>
+
+                  <div className="grid gap-2">
+                    <Label className="text-muted-foreground">Congregação</Label>
+                    <p className="font-medium">{viewingMembro.congregacao}</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label className="text-muted-foreground">Telefone</Label>
+                    <p className="font-medium">{viewingMembro.telefone}</p>
+                  </div>
+
+                  {viewingMembro.email && (
+                    <div className="grid gap-2">
+                      <Label className="text-muted-foreground">E-mail</Label>
+                      <p className="font-medium">{viewingMembro.email}</p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="grid gap-2">
+                  <Label className="text-muted-foreground">Status</Label>
+                  <Badge variant={viewingMembro.status === "ativo" ? "default" : "secondary"} className="w-fit">
+                    {viewingMembro.status === "ativo" ? "Ativo" : "Inativo"}
+                  </Badge>
+                </div>
+              </div>
+            )}
+
+            <DialogFooter>
+              <Button onClick={() => setIsDetailsDialogOpen(false)}>
+                Fechar
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Dialog de Confirmação de Exclusão */}
+        <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+              <AlertDialogDescription>
+                Tem certeza que deseja excluir este membro do ministério? Esta ação não pode ser desfeita.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => setDeletingId(null)}>
+                Cancelar
+              </AlertDialogCancel>
+              <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                Excluir
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </div>
+    </MainLayout>
+  );
+}
       </div>
     </MainLayout>
   );

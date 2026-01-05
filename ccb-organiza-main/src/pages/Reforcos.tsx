@@ -37,44 +37,7 @@ interface AgendamentoReforco {
   ano: number;
 }
 
-// Dados de exemplo
-const congregacoesData: Congregacao[] = [
-  { id: "1", nome: "Congregação Central", temRJM: true, cidade: "São Paulo" },
-  { id: "2", nome: "Congregação Norte", temRJM: true, cidade: "Guarulhos" },
-  { id: "3", nome: "Congregação Sul", temRJM: false, cidade: "São Bernardo" },
-  { id: "4", nome: "Congregação Leste", temRJM: true, cidade: "Santo André" },
-  { id: "5", nome: "Congregação Oeste", temRJM: false, cidade: "Osasco" },
-];
-
-const agendamentosData: AgendamentoReforco[] = [
-  {
-    id: "1",
-    congregacaoId: "1",
-    congregacaoNome: "Congregação Central",
-    data: new Date(2024, 0, 15),
-    tipo: "culto",
-    mes: "Janeiro",
-    ano: 2024,
-  },
-  {
-    id: "2",
-    congregacaoId: "2",
-    congregacaoNome: "Congregação Norte",
-    data: new Date(2024, 0, 20),
-    tipo: "rjm",
-    mes: "Janeiro",
-    ano: 2024,
-  },
-  {
-    id: "3",
-    congregacaoId: "4",
-    congregacaoNome: "Congregação Leste",
-    data: new Date(2024, 0, 25),
-    tipo: "coleta",
-    mes: "Janeiro",
-    ano: 2024,
-  },
-];
+import { useFirestore } from "@/hooks/useFirestore";
 
 const meses = [
   "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",

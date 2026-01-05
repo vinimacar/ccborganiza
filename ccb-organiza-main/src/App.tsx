@@ -10,6 +10,8 @@ import Agenda from "./pages/Agenda";
 import Reforcos from "./pages/Reforcos";
 import Listas from "./pages/Listas";
 import Contatos from "./pages/Contatos";
+import Relatorios from "./pages/Relatorios";
+import EBI from "./pages/EBI";
 import ComingSoon from "./pages/ComingSoon";
 import NotFound from "./pages/NotFound";
 
@@ -29,8 +31,8 @@ const App = () => (
           <Route path="/agenda" element={<Agenda />} />
           <Route path="/resultados" element={<ComingSoon title="Resultados" description="Buscar os Eventos: Batismo, Santa Ceia e Ensaios Regionais, com relatório completo por instrumentos e categorias." />} />
           <Route path="/listas" element={<Listas />} />
-          <Route path="/relatorios" element={<ComingSoon title="Relatórios" description="Filtros de resultados e geração de gráficos e documentos em PDF." />} />
-          <Route path="/ebi" element={<ComingSoon title="EBI" description="Repositório de atividades para os Espaço Bíblicos Infantis cadastrados." />} />
+          <Route path="/relatorios" element={<Relatorios />} />
+          <Route path="/ebi" element={<EBI />} />
           <Route path="/contatos" element={<Contatos />} />
           <Route path="*" element={<NotFound />} />
         </Routes>

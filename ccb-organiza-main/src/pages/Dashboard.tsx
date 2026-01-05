@@ -9,28 +9,75 @@ import {
   BookOpen,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useFirestore } from "@/hooks/useFirestore";
 
-// Dados simulados para demonstração
-const congregacaoData = {
-  total: 12,
-  comEBI: 8,
-  ocupacao: 78,
-  vagasOciosas: 22,
-};
+interface Congregacao {
+  id: string;
+  nome: string;
+  temEBI: boolean;
+  capacidade: number;
+  ocupacao: number;
+}
 
-const eventosDoMes = [
-  { tipo: "Batismo", data: "15/01/2024", local: "Sede Regional" },
-  { tipo: "Santa Ceia", data: "21/01/2024", local: "Todas as congregações" },
-  { tipo: "Ensaio Regional", data: "28/01/2024", local: "Congregação Central" },
-];
+interface Evento {
+  id: string;
+  tipo: string;
+  data: string;
+  local: string;
+}
 
-const proximosCultos = [
-  { congregacao: "Congregação Central", data: "Dom, 14/01", horario: "19:00" },
-  { congregacao: "Congregação Norte", data: "Qua, 17/01", horario: "19:30" },
-  { congregacao: "Congregação Sul", data: "Sex, 19/01", horario: "19:00" },
-];
+interface Culto {
+  id: string;
+  congregacao: string;
+  data: string;
+  horario: string;
+}
+
+interface Estatisticas {
+  id: string;
+  batismosAno: number;
+  ministerioAtivo: number;
+  criancasEBI: number;
+}
 
 export default function Dashboard() {
+  const { data: congregacoes, loading: loadingCongregacoes } = useFirestore<Congregacao>({ 
+    collectionName: 'congregacoes' 
+  });
+  const { data: eventos, loading: loadingEventos } = useFirestore<Evento>({ 
+    collectionName: 'eventos' 
+  });
+  const { data: cultos, loading: loadingCultos } = useFirestore<Culto>({ 
+    collectionName: 'cultos' 
+  });
+  const { data: estatisticas } = useFirestore<Estatisticas>({ 
+    collectionName: 'estatisticas' 
+  });
+
+  // Calcula dados das congregações
+  const congregacaoData = {
+    total: congregacoes.length,
+    comEBI: congregacoes.filter(c => c.temEBI).length,
+    ocupacao: congregacoes.length > 0 
+      ? Math.round(congregacoes.reduce((acc, c) => acc + c.ocupacao, 0) / congregacoes.length)
+      : 0,
+    vagasOciosas: congregacoes.length > 0
+      ? Math.round(100 - (congregacoes.reduce((acc, c) => acc + c.ocupacao, 0) / congregacoes.length))
+      : 0,
+  };
+
+  const stats = estatisticas[0] || { batismosAno: 0, ministerioAtivo: 0, criancasEBI: 0 };
+  const isLoading = loadingCongregacoes || loadingEventos || loadingCultos;
+  if (isLoading) {
+    return (
+      <MainLayout>
+        <div className="animate-fade-in flex items-center justify-center min-h-[400px]">
+          <p className="text-muted-foreground">Carregando dados...</p>
+        </div>
+      </MainLayout>
+    );
+  }
+
   return (
     <MainLayout>
       <div className="animate-fade-in">
@@ -66,7 +113,7 @@ export default function Dashboard() {
           />
           <StatCard
             title="Eventos do Mês"
-            value={eventosDoMes.length}
+            value={eventos.length}
             subtitle="Batismos, ensaios e reuniões"
             icon={Calendar}
             variant="secondary"
@@ -84,24 +131,28 @@ export default function Dashboard() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {eventosDoMes.map((evento, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center justify-between p-4 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
-                  >
-                    <div>
-                      <p className="font-semibold text-foreground">{evento.tipo}</p>
-                      <p className="text-sm text-muted-foreground">{evento.local}</p>
+              {eventos.length === 0 ? (
+                <p className="text-muted-foreground text-center py-4">Nenhum evento cadastrado</p>
+              ) : (
+                <div className="space-y-4">
+                  {eventos.map((evento) => (
+                    <div
+                      key={evento.id}
+                      className="flex items-center justify-between p-4 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
+                    >
+                      <div>
+                        <p className="font-semibold text-foreground">{evento.tipo}</p>
+                        <p className="text-sm text-muted-foreground">{evento.local}</p>
+                      </div>
+                      <div className="text-right">
+                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary">
+                          {evento.data}
+                        </span>
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary">
-                        {evento.data}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -114,24 +165,28 @@ export default function Dashboard() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {proximosCultos.map((culto, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center justify-between p-4 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
-                  >
-                    <div>
-                      <p className="font-semibold text-foreground">{culto.congregacao}</p>
-                      <p className="text-sm text-muted-foreground">{culto.data}</p>
+              {cultos.length === 0 ? (
+                <p className="text-muted-foreground text-center py-4">Nenhum culto cadastrado</p>
+              ) : (
+                <div className="space-y-4">
+                  {cultos.map((culto) => (
+                    <div
+                      key={culto.id}
+                      className="flex items-center justify-between p-4 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
+                    >
+                      <div>
+                        <p className="font-semibold text-foreground">{culto.congregacao}</p>
+                        <p className="text-sm text-muted-foreground">{culto.data}</p>
+                      </div>
+                      <div className="text-right">
+                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-secondary text-secondary-foreground">
+                          {culto.horario}
+                        </span>
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-secondary text-secondary-foreground">
-                        {culto.horario}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -145,7 +200,7 @@ export default function Dashboard() {
                   <UserCheck className="text-success" size={24} />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold font-display">47</p>
+                  <p className="text-2xl font-bold font-display">{stats.batismosAno}</p>
                   <p className="text-sm text-muted-foreground">Batismos este ano</p>
                 </div>
               </div>
@@ -159,7 +214,7 @@ export default function Dashboard() {
                   <Users className="text-info" size={24} />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold font-display">156</p>
+                  <p className="text-2xl font-bold font-display">{stats.ministerioAtivo}</p>
                   <p className="text-sm text-muted-foreground">Ministério ativo</p>
                 </div>
               </div>
@@ -173,7 +228,7 @@ export default function Dashboard() {
                   <BookOpen className="text-warning" size={24} />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold font-display">234</p>
+                  <p className="text-2xl font-bold font-display">{stats.criancasEBI}</p>
                   <p className="text-sm text-muted-foreground">Crianças no EBI</p>
                 </div>
               </div>

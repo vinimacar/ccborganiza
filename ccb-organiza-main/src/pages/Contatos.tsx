@@ -22,25 +22,29 @@ interface Contato {
   email?: string;
 }
 
-const contatosData: Contato[] = [
-  { id: "1", nome: "João Silva", ministerio: "Ancião", congregacao: "Central", telefone: "(11) 99999-0001", email: "joao@email.com" },
-  { id: "2", nome: "Pedro Santos", ministerio: "Cooperador", congregacao: "Norte", telefone: "(11) 99999-0002" },
-  { id: "3", nome: "Maria Oliveira", ministerio: "Cooperador de Jovens", congregacao: "Sul", telefone: "(11) 99999-0003", email: "maria@email.com" },
-  { id: "4", nome: "Carlos Lima", ministerio: "Diácono", congregacao: "Central", telefone: "(11) 99999-0004" },
-  { id: "5", nome: "Ana Costa", ministerio: "Organista", congregacao: "Norte", telefone: "(11) 99999-0005", email: "ana@email.com" },
-  { id: "6", nome: "José Ferreira", ministerio: "Oficial", congregacao: "Central", telefone: "(11) 99999-0006" },
-  { id: "7", nome: "Lucia Martins", ministerio: "Organista", congregacao: "Sul", telefone: "(11) 99999-0007" },
-  { id: "8", nome: "Roberto Alves", ministerio: "Porteiro", congregacao: "Norte", telefone: "(11) 99999-0008" },
-];
+import { useFirestore } from "@/hooks/useFirestore";
 
 export default function Contatos() {
   const [searchTerm, setSearchTerm] = useState("");
+  const { data: contatosData, loading } = useFirestore<Contato>({ 
+    collectionName: 'contatos' 
+  });
 
   const filteredContatos = contatosData.filter((c) =>
     c.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
     c.ministerio.toLowerCase().includes(searchTerm.toLowerCase()) ||
     c.congregacao.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  if (loading) {
+    return (
+      <MainLayout>
+        <div className="animate-fade-in flex items-center justify-center min-h-[400px]">
+          <p className="text-muted-foreground">Carregando contatos...</p>
+        </div>
+      </MainLayout>
+    );
+  }
 
   const getInitials = (name: string) => {
     return name
