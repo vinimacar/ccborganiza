@@ -34,13 +34,19 @@ jobs:
     - name: Build
       run: npm run build
       env:
+        # Ensure that VITE_FIREBASE_API_KEY is set in your repository's secrets at
+        # https://github.com/vinimacar/ccborganiza/settings/secrets/actions
         VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
         VITE_FIREBASE_AUTH_DOMAIN: ${{ secrets.VITE_FIREBASE_AUTH_DOMAIN }}
         # Ensure that VITE_FIREBASE_AUTH_DOMAIN is set in your repository's secrets at
         # https://github.com/vinimacar/ccborganiza/settings/secrets/actions
         VITE_FIREBASE_PROJECT_ID: ${{ secrets.VITE_FIREBASE_PROJECT_ID }}
+        # Ensure that VITE_FIREBASE_STORAGE_BUCKET is set in your repository's secrets at
+        # https://github.com/vinimacar/ccborganiza/settings/secrets/actions
         VITE_FIREBASE_STORAGE_BUCKET: ${{ secrets.VITE_FIREBASE_STORAGE_BUCKET }}
         VITE_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID }}
+        # Ensure that VITE_FIREBASE_APP_ID is set in your repository's secrets at
+        # https://github.com/vinimacar/ccborganiza/settings/secrets/actions
         VITE_FIREBASE_APP_ID: ${{ secrets.VITE_FIREBASE_APP_ID }}
         
     - name: Setup Pages
