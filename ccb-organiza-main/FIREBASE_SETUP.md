@@ -7,6 +7,11 @@ Este documento descreve como configurar o Firebase para o sistema CCB Organiza.
 1. Uma conta no [Firebase Console](https://console.firebase.google.com/)
 2. Node.js instalado (v16 ou superior)
 
+## 📦 Arquivos de Configuração
+
+- **firestore.rules** - Regras de segurança do Firestore
+- **firestore.indexes.json** - Índices para otimização de queries
+
 ## 🚀 Passos para Configuração
 
 ### 1. Criar um Projeto no Firebase
@@ -197,15 +202,61 @@ O sistema agora está conectado ao Firebase e buscará todos os dados do Firesto
 - Verifique se há documentos nas coleções
 - Abra o console do navegador para ver possíveis erros
 
+## � Configurar Regras de Segurança e Índices
+
+### Via Firebase Console (Recomendado)
+
+#### Regras de Segurança:
+1. Acesse: https://console.firebase.google.com/
+2. Selecione seu projeto: **directed-optics-460823-q5**
+3. Vá em **Firestore Database** → **Regras**
+4. Cole o conteúdo do arquivo `firestore.rules`
+5. Clique em **Publicar**
+
+#### Índices:
+1. Vá em **Firestore Database** → **Índices**
+2. Os índices serão criados automaticamente quando necessário
+3. Ou use o arquivo `firestore.indexes.json` com Firebase CLI
+
+### Via Firebase CLI
+
+```bash
+# Instalar Firebase CLI
+npm install -g firebase-tools
+
+# Fazer login
+firebase login
+
+# Inicializar (se ainda não fez)
+firebase init firestore
+
+# Deploy
+firebase deploy --only firestore:rules
+firebase deploy --only firestore:indexes
+```
+
+## 📊 Coleções Configuradas
+
+- **eventos-listas** - Eventos e listas de atividades
+- **avisos** - Avisos e comunicados
+- **ebi-atividades** - Atividades da Escola Bíblica Infantil
+- **congregacoes** - Dados das congregações
+- **ministerio** - Informações do ministério
+
 ## 📚 Recursos Úteis
 
 - [Documentação do Firebase](https://firebase.google.com/docs)
 - [Firestore Guide](https://firebase.google.com/docs/firestore)
 - [Firebase React Tutorial](https://firebase.google.com/docs/web/setup)
+- [Regras de Segurança](https://firebase.google.com/docs/firestore/security/get-started)
 
 ## 🎯 Próximos Passos
 
+- [x] Configurar regras de segurança (arquivo criado)
+- [x] Configurar índices (arquivo criado)
+- [ ] Aplicar regras no Firebase Console
 - [ ] Configurar autenticação de usuários
+
 - [ ] Implementar regras de segurança adequadas
 - [ ] Adicionar validação de dados
 - [ ] Implementar backup automático
