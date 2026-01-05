@@ -1,7 +1,7 @@
 {
   "indexes": [
     {
-      "collectionGroup": "eventos-listas",
+      "collectionGroup": "eventos_listas",
       "queryScope": "COLLECTION",
       "fields": [
         {
@@ -21,7 +21,7 @@
       ]
     },
     {
-      "collectionGroup": "ebi-atividades",
+      "collectionGroup": "ebi_atividades",
       "queryScope": "COLLECTION",
       "fields": [
         {
