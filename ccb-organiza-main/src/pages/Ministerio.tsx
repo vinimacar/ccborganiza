@@ -523,7 +523,3 @@ export default function Ministerio() {
     </MainLayout>
   );
 }
-      </div>
-    </MainLayout>
-  );
-}

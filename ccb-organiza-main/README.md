@@ -1,53 +1,135 @@
-# Welcome to your Lovable project
+# CCB Organiza - Sistema de Gestão Regional
 
-## Project info
+Sistema completo para gerenciamento de congregações, ministério, eventos e atividades da Congregação Cristã no Brasil.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+## 🚀 Funcionalidades
 
-## How can I edit this code?
+- **Dashboard**: Visão geral com estatísticas e métricas
+- **Congregações**: Gerenciamento completo de congregações (CRUD)
+- **Ministério**: Cadastro e controle de membros do ministério
+- **Agenda**: Calendário de eventos e cultos
+- **Reforços**: Gestão de reforços musicais
+- **Listas**: Criação de listas de eventos com avisos e exportação em PDF
+- **Relatórios**: Geração de relatórios com filtros, gráficos e exportação PDF
+- **EBI**: Repositório de atividades para Escola Bíblica Infantil
+- **Contatos**: Gerenciamento de contatos importantes
 
-There are several ways of editing your application.
+## 🛠️ Tecnologias
 
-**Use Lovable**
+- **React 18** + **TypeScript**
+- **Vite** - Build tool
+- **Firebase** - Banco de dados e autenticação
+- **shadcn/ui** - Componentes de interface
+- **Tailwind CSS** - Estilização
+- **jsPDF** - Geração de PDFs
+- **Lucide React** - Ícones
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+## 📋 Pré-requisitos
 
-Changes made via Lovable will be committed automatically to this repo.
+- Node.js 18+ e npm
+- Conta no Firebase
 
-**Use your preferred IDE**
+## 🔧 Instalação
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
+```bash
+# Clone o repositório
 git clone <YOUR_GIT_URL>
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+# Entre na pasta do projeto
+cd ccb-organiza-main
 
-# Step 3: Install the necessary dependencies.
-npm i
+# Instale as dependências
+npm install
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# Configure o Firebase
+# 1. Copie o arquivo de exemplo
+cp .env.example .env
+
+# 2. Edite o arquivo .env e adicione suas credenciais do Firebase
+# VITE_FIREBASE_API_KEY=sua_api_key
+# VITE_FIREBASE_AUTH_DOMAIN=seu_auth_domain
+# ... (veja .env.example para todos os campos)
+
+# Inicie o servidor de desenvolvimento
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+## 🔥 Configuração do Firebase
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+Consulte o arquivo [FIREBASE_SETUP.md](FIREBASE_SETUP.md) para instruções detalhadas sobre como:
+- Criar um projeto Firebase
+- Configurar Firestore
+- Obter as credenciais
+- Criar as coleções necessárias
 
-**Use GitHub Codespaces**
+## 🌐 Deploy
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
+### GitHub Pages
+
+```bash
+# Build do projeto
+npm run build
+
+# Deploy para GitHub Pages
+# Configure o GitHub Pages para usar a branch gh-pages
+```
+
+### Netlify/Vercel
+
+Conecte seu repositório GitHub diretamente na plataforma e configure:
+- **Build command**: `npm run build`
+- **Publish directory**: `dist`
+- **Environment variables**: Adicione todas as variáveis do Firebase
+
+## 📁 Estrutura do Projeto
+
+```
+src/
+├── components/     # Componentes reutilizáveis
+│   ├── layout/    # Layout principal e sidebar
+│   └── ui/        # Componentes shadcn/ui
+├── hooks/         # Custom hooks (useFirestore)
+├── lib/           # Utilitários (Firebase, datas)
+├── pages/         # Páginas da aplicação
+└── App.tsx        # Configuração de rotas
+```
+
+## 🎨 Padrão de Data
+
+O sistema utiliza o padrão brasileiro:
+- Formato: dd/mm/aaaa
+- Timezone: America/Sao_Paulo (Horário de Brasília)
+- Funções em `src/lib/dateUtils.ts`
+
+## 📱 Coleções Firebase
+
+- `congregacoes` - Congregações cadastradas
+- `ministerio` - Membros do ministério
+- `eventos` - Eventos gerais
+- `cultos` - Cultos programados
+- `estatisticas` - Dados estatísticos
+- `eventos-listas` - Eventos para listas
+- `avisos` - Avisos e comunicados
+- `batismos` - Registros de batismos
+- `contatos` - Contatos importantes
+- `ebi-atividades` - Atividades da EBI
+
+## 👥 Contribuindo
+
+1. Fork o projeto
+2. Crie uma branch (`git checkout -b feature/MinhaFeature`)
+3. Commit suas mudanças (`git commit -m 'Adiciona MinhaFeature'`)
+4. Push para a branch (`git push origin feature/MinhaFeature`)
+5. Abra um Pull Request
+
+## 📄 Licença
+
+Este projeto é de uso interno da CCB.
+
+## 📞 Suporte
+
+Para dúvidas e suporte, consulte a documentação ou entre em contato com a equipe de desenvolvimento.
+
 - Edit files directly within the Codespace and commit and push your changes once you're done.
 
 ## What technologies are used for this project?

@@ -1,11 +1,11 @@
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, Search, Download, MessageCircle, Filter, Printer, ChevronLeft, Plus, Edit } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Calendar, Search, Download, Plus, Printer, Edit, Trash2 } from "lucide-react";
 import { useState } from "react";
 import {
   Select,
@@ -15,7 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Switch } from "@/components/ui/switch";
+import { useFirestore } from "@/hooks/useFirestore";
 import {
   Dialog,
   DialogContent,
@@ -24,8 +24,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { useFirestore } from "@/hooks/useFirestore";
 import { useToast } from "@/hooks/use-toast";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 import { formatDateBR } from "@/lib/dateUtils";
 
 interface Evento {
@@ -37,12 +38,11 @@ interface Evento {
   status: "confirmado" | "pendente" | "realizado";
 }
 
-interface Batismo {
+interface Aviso {
   id: string;
-  data: string;
-  hora: string;
-  localidade: string;
-  anciao: string;
+  titulo: string;
+  conteudo: string;
+  dataCriacao: string;
 }
 
 const statusColors: Record<string, string> = {
@@ -51,27 +51,21 @@ const statusColors: Record<string, string> = {
   "realizado": "bg-muted text-muted-foreground border-muted",
 };
 
-const statusLabels: Record<string, string> = {
-  "confirmado": "Confirmado",
-  "pendente": "Pendente",
-  "realizado": "Realizado",
-};
-
 export default function Listas() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("todos");
-  const [activeTab, setActiveTab] = useState("preview");
-  const [showBatismos, setShowBatismos] = useState(true);
+  const [activeTab, setActiveTab] = useState("eventos");
   const [isEventoDialogOpen, setIsEventoDialogOpen] = useState(false);
   const [isAvisoDialogOpen, setIsAvisoDialogOpen] = useState(false);
-  const [avisos, setAvisos] = useState(""); // Avisos da lista
+  const [editingEvento, setEditingEvento] = useState<Evento | null>(null);
+  const [editingAviso, setEditingAviso] = useState<Aviso | null>(null);
   const { toast } = useToast();
   
-  const { data: eventosData, loading: loadingEventos, add: addEvento } = useFirestore<Evento>({ 
+  const { data: eventosData, loading: loadingEventos, add: addEvento, update: updateEvento, remove: removeEvento } = useFirestore<Evento>({ 
     collectionName: 'eventos-listas' 
   });
-  const { data: batismosData, loading: loadingBatismos } = useFirestore<Batismo>({ 
-    collectionName: 'batismos' 
+  const { data: avisosData, loading: loadingAvisos, add: addAviso, update: updateAviso, remove: removeAviso } = useFirestore<Aviso>({ 
+    collectionName: 'avisos' 
   });
 
   const [formEvento, setFormEvento] = useState({
@@ -82,14 +76,22 @@ export default function Listas() {
     status: "pendente" as "confirmado" | "pendente" | "realizado",
   });
 
-  const handleAddEvento = async () => {
+  const [formAviso, setFormAviso] = useState({
+    titulo: "",
+    conteudo: "",
+  });
+
+  const handleSaveEvento = async () => {
     try {
-      await addEvento(formEvento);
-      toast({
-        title: "Sucesso!",
-        description: "Evento adicionado à lista.",
-      });
+      if (editingEvento) {
+        await updateEvento(editingEvento.id, formEvento);
+        toast({ title: "Sucesso!", description: "Evento atualizado." });
+      } else {
+        await addEvento(formEvento);
+        toast({ title: "Sucesso!", description: "Evento adicionado." });
+      }
       setIsEventoDialogOpen(false);
+      setEditingEvento(null);
       setFormEvento({
         tipo: "",
         data: "",
@@ -98,32 +100,87 @@ export default function Listas() {
         status: "pendente",
       });
     } catch (error) {
-      toast({
-        title: "Erro",
-        description: "Ocorreu um erro ao adicionar o evento.",
-        variant: "destructive",
-      });
+      toast({ title: "Erro", description: "Erro ao salvar evento.", variant: "destructive" });
     }
   };
 
-  const handleSaveAvisos = () => {
-    toast({
-      title: "Sucesso!",
-      description: "Avisos salvos com sucesso.",
-    });
-    setIsAvisoDialogOpen(false);
+  const handleSaveAviso = async () => {
+    try {
+      const dataToSave = {
+        ...formAviso,
+        dataCriacao: editingAviso?.dataCriacao || new Date().toISOString(),
+      };
+
+      if (editingAviso) {
+        await updateAviso(editingAviso.id, dataToSave);
+        toast({ title: "Sucesso!", description: "Aviso atualizado." });
+      } else {
+        await addAviso(dataToSave);
+        toast({ title: "Sucesso!", description: "Aviso adicionado." });
+      }
+      setIsAvisoDialogOpen(false);
+      setEditingAviso(null);
+      setFormAviso({ titulo: "", conteudo: "" });
+    } catch (error) {
+      toast({ title: "Erro", description: "Erro ao salvar aviso.", variant: "destructive" });
+    }
   };
 
-  const handlePrint = () => {
-    window.print();
-  };
+  const gerarPDF = () => {
+    const doc = new jsPDF();
+    const dataAtual = formatDateBR(new Date());
 
-  const handleDownloadPDF = () => {
-    // Implementar download PDF se necessário
-    toast({
-      title: "Em desenvolvimento",
-      description: "Funcionalidade de download PDF em breve.",
-    });
+    // Cabeçalho
+    doc.setFontSize(18);
+    doc.text("Lista de Eventos e Avisos", 14, 20);
+    doc.setFontSize(11);
+    doc.text(`Data: ${dataAtual}`, 14, 28);
+
+    // Eventos
+    if (eventosData.length > 0) {
+      doc.setFontSize(14);
+      doc.text("Eventos", 14, 40);
+
+      const tableData = eventosData.map(e => [
+        e.tipo,
+        formatDateBR(e.data),
+        e.local,
+        e.participantes.toString(),
+        e.status
+      ]);
+
+      autoTable(doc, {
+        startY: 45,
+        head: [['Tipo', 'Data', 'Local', 'Participantes', 'Status']],
+        body: tableData,
+        theme: 'grid',
+        headStyles: { fillColor: [59, 130, 246] },
+      });
+    }
+
+    // Avisos
+    if (avisosData.length > 0) {
+      const yPos = eventosData.length > 0 ? (doc as any).lastAutoTable.finalY + 15 : 45;
+      doc.setFontSize(14);
+      doc.text("Avisos", 14, yPos);
+
+      let currentY = yPos + 7;
+      avisosData.forEach((aviso, index) => {
+        if (currentY > 270) {
+          doc.addPage();
+          currentY = 20;
+        }
+        doc.setFontSize(12);
+        doc.text(`${index + 1}. ${aviso.titulo}`, 14, currentY);
+        currentY += 6;
+        doc.setFontSize(10);
+        const lines = doc.splitTextToSize(aviso.conteudo, 180);
+        doc.text(lines, 20, currentY);
+        currentY += lines.length * 5 + 5;
+      });
+    }
+
+    doc.save(`lista-eventos-${Date.now()}.pdf`);
   };
 
   const filteredEventos = eventosData.filter((e) => {
@@ -133,7 +190,7 @@ export default function Listas() {
     return matchesSearch && matchesStatus;
   });
 
-  if (loadingEventos || loadingBatismos) {
+  if (loadingEventos || loadingAvisos) {
     return (
       <MainLayout>
         <div className="animate-fade-in flex items-center justify-center min-h-[400px]">
@@ -143,53 +200,35 @@ export default function Listas() {
     );
   }
 
-  const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr);
-    return date.toLocaleDateString("pt-BR");
-  };
-
-  const currentMonth = new Date().toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
-
   return (
     <MainLayout>
       <div className="animate-fade-in">
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-          <div className="flex items-center gap-4">
-            <Button variant="outline" size="sm" className="gap-2">
-              <ChevronLeft size={16} />
-              Voltar
+          <div>
+            <h1 className="page-title">Listas de Eventos</h1>
+            <p className="page-subtitle">Gerencie eventos e avisos</p>
+          </div>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={gerarPDF} className="gap-2">
+              <Download size={16} />
+              Gerar PDF
             </Button>
           </div>
-          <p className="text-muted-foreground capitalize">{currentMonth}</p>
         </div>
 
         {/* Tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2 mb-6">
-            <TabsTrigger value="gerenciar">Gerenciar Eventos</TabsTrigger>
-            <TabsTrigger value="preview">Preview da Lista</TabsTrigger>
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="mb-6">
+            <TabsTrigger value="eventos">Eventos</TabsTrigger>
+            <TabsTrigger value="avisos">Avisos</TabsTrigger>
+            <TabsTrigger value="preview">Preview</TabsTrigger>
           </TabsList>
 
-          {/* Gerenciar Eventos Tab */}
-          <TabsContent value="gerenciar">
-            <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <h2 className="text-2xl font-bold">Eventos da Lista</h2>
-                <div className="flex gap-2">
-                  <Button onClick={() => setIsAvisoDialogOpen(true)} variant="outline" className="gap-2">
-                    <MessageCircle size={16} />
-                    Editar Avisos
-                  </Button>
-                  <Button onClick={() => setIsEventoDialogOpen(true)} className="gap-2">
-                    <Plus size={16} />
-                    Adicionar Evento
-                  </Button>
-                </div>
-              </div>
-
-              {/* Filtros */}
-              <div className="flex gap-4 mb-4">
+          {/* Eventos Tab */}
+          <TabsContent value="eventos" className="space-y-4">
+            <div className="flex justify-between items-center gap-4">
+              <div className="flex gap-4 flex-1">
                 <div className="relative flex-1 max-w-md">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={20} />
                   <Input
@@ -200,8 +239,8 @@ export default function Listas() {
                   />
                 </div>
                 <Select value={filterStatus} onValueChange={setFilterStatus}>
-                  <SelectTrigger className="w-48">
-                    <SelectValue placeholder="Status" />
+                  <SelectTrigger className="w-44">
+                    <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="todos">Todos</SelectItem>
@@ -211,216 +250,214 @@ export default function Listas() {
                   </SelectContent>
                 </Select>
               </div>
+              <Button onClick={() => {
+                setEditingEvento(null);
+                setFormEvento({ tipo: "", data: "", local: "", participantes: 0, status: "pendente" });
+                setIsEventoDialogOpen(true);
+              }} className="gap-2">
+                <Plus size={16} />
+                Adicionar Evento
+              </Button>
+            </div>
 
-              {/* Lista de Eventos */}
-              <div className="grid gap-4">
-                {filteredEventos.map((evento) => (
-                  <Card key={evento.id}>
-                    <CardContent className="pt-6">
-                      <div className="flex justify-between items-start">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
-                            <h3 className="text-lg font-semibold">{evento.tipo}</h3>
-                            <Badge className={statusColors[evento.status]}>
-                              {statusLabels[evento.status]}
-                            </Badge>
-                          </div>
-                          <p className="text-sm text-muted-foreground mb-1">
-                            <Calendar className="inline mr-1" size={14} />
-                            {formatDateBR(new Date(evento.data))}
-                          </p>
-                          <p className="text-sm text-muted-foreground">
-                            📍 {evento.local}
-                          </p>
-                          {evento.participantes > 0 && (
-                            <p className="text-sm text-muted-foreground mt-1">
-                              👥 {evento.participantes} participantes
-                            </p>
-                          )}
+            <div className="space-y-3">
+              {filteredEventos.map((evento) => (
+                <Card key={evento.id}>
+                  <CardContent className="p-4">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <h3 className="font-semibold">{evento.tipo}</h3>
+                          <Badge className={statusColors[evento.status]}>
+                            {evento.status}
+                          </Badge>
+                        </div>
+                        <div className="text-sm text-muted-foreground space-y-1">
+                          <p><Calendar size={14} className="inline mr-2" />{formatDateBR(evento.data)}</p>
+                          <p>{evento.local}</p>
+                          <p>Participantes: {evento.participantes}</p>
                         </div>
                       </div>
-                    </CardContent>
-                  </Card>
-                ))}
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setEditingEvento(evento);
+                            setFormEvento({
+                              tipo: evento.tipo,
+                              data: evento.data,
+                              local: evento.local,
+                              participantes: evento.participantes,
+                              status: evento.status,
+                            });
+                            setIsEventoDialogOpen(true);
+                          }}
+                        >
+                          <Edit size={14} />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => removeEvento(evento.id)}
+                        >
+                          <Trash2 size={14} />
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+              {filteredEventos.length === 0 && (
+                <div className="text-center py-12 text-muted-foreground">
+                  Nenhum evento encontrado
+                </div>
+              )}
+            </div>
+          </TabsContent>
 
-                {filteredEventos.length === 0 && (
-                  <div className="text-center py-12">
-                    <Calendar size={48} className="mx-auto text-muted-foreground mb-4" />
-                    <p className="text-muted-foreground mb-4">Nenhum evento na lista ainda.</p>
-                    <Button onClick={() => setIsEventoDialogOpen(true)} className="gap-2">
-                      <Plus size={16} />
-                      Adicionar Primeiro Evento
-                    </Button>
-                  </div>
-                )}
-              </div>
+          {/* Avisos Tab */}
+          <TabsContent value="avisos" className="space-y-4">
+            <div className="flex justify-end">
+              <Button onClick={() => {
+                setEditingAviso(null);
+                setFormAviso({ titulo: "", conteudo: "" });
+                setIsAvisoDialogOpen(true);
+              }} className="gap-2">
+                <Plus size={16} />
+                Adicionar Aviso
+              </Button>
+            </div>
+
+            <div className="space-y-3">
+              {avisosData.map((aviso) => (
+                <Card key={aviso.id}>
+                  <CardContent className="p-4">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1">
+                        <h3 className="font-semibold mb-2">{aviso.titulo}</h3>
+                        <p className="text-sm text-muted-foreground whitespace-pre-line">{aviso.conteudo}</p>
+                        <p className="text-xs text-muted-foreground mt-2">
+                          Criado em: {formatDateBR(aviso.dataCriacao)}
+                        </p>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setEditingAviso(aviso);
+                            setFormAviso({
+                              titulo: aviso.titulo,
+                              conteudo: aviso.conteudo,
+                            });
+                            setIsAvisoDialogOpen(true);
+                          }}
+                        >
+                          <Edit size={14} />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => removeAviso(aviso.id)}
+                        >
+                          <Trash2 size={14} />
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+              {avisosData.length === 0 && (
+                <div className="text-center py-12 text-muted-foreground">
+                  Nenhum aviso cadastrado
+                </div>
+              )}
             </div>
           </TabsContent>
 
           {/* Preview Tab */}
           <TabsContent value="preview">
-            <div className="bg-white p-8 rounded-lg shadow-lg print:shadow-none" id="preview-content">
-              <div className="text-center mb-8">
-                <h1 className="text-3xl font-bold mb-2">LISTA DE EVENTOS</h1>
-                <p className="text-lg text-gray-600 capitalize">{currentMonth}</p>
-              </div>
+            <Card>
+              <CardContent className="p-6">
+                <div className="space-y-6">
+                  <div className="text-center border-b pb-4">
+                    <h2 className="text-2xl font-bold">Lista de Eventos</h2>
+                    <p className="text-muted-foreground">{formatDateBR(new Date())}</p>
+                  </div>
 
-              {/* Avisos */}
-              {avisos && (
-                <div className="mb-8 p-4 bg-yellow-50 border-l-4 border-yellow-400 rounded">
-                  <h2 className="font-bold text-lg mb-2">📢 AVISOS IMPORTANTES</h2>
-                  <div className="whitespace-pre-line text-sm">{avisos}</div>
-                </div>
-              )}
-
-              {/* Eventos */}
-              <div className="space-y-6">
-                <h2 className="text-2xl font-bold border-b-2 border-gray-300 pb-2">EVENTOS DO MÊS</h2>
-                {eventosData.map((evento, index) => (
-                  <div key={evento.id} className="border-b border-gray-200 pb-4">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <h3 className="text-xl font-semibold">{index + 1}. {evento.tipo}</h3>
-                        <p className="text-gray-700 mt-1">
-                          <strong>Data:</strong> {formatDateBR(new Date(evento.data))}
-                        </p>
-                        <p className="text-gray-700">
-                          <strong>Local:</strong> {evento.local}
-                        </p>
-                        {evento.participantes > 0 && (
-                          <p className="text-gray-700">
-                            <strong>Participantes esperados:</strong> {evento.participantes}
-                          </p>
-                        )}
+                  {eventosData.length > 0 && (
+                    <div>
+                      <h3 className="text-lg font-semibold mb-4">Eventos</h3>
+                      <div className="space-y-3">
+                        {eventosData.map((evento) => (
+                          <div key={evento.id} className="border-l-4 border-primary pl-4">
+                            <p className="font-semibold">{evento.tipo}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {formatDateBR(evento.data)} - {evento.local}
+                            </p>
+                            <p className="text-sm">Participantes: {evento.participantes}</p>
+                          </div>
+                        ))}
                       </div>
-                      <Badge variant="outline" className="text-sm">
-                        {statusLabels[evento.status]}
-                      </Badge>
                     </div>
-                  </div>
-                ))}
+                  )}
 
-                {eventosData.length === 0 && (
-                  <p className="text-center text-gray-500 py-8">Nenhum evento cadastrado para este mês.</p>
-                )}
-              </div>
-
-              {/* Batismos (se habilitado) */}
-              {showBatismos && batismosData.length > 0 && (
-                <div className="mt-8 space-y-4">
-                  <h2 className="text-2xl font-bold border-b-2 border-gray-300 pb-2">BATISMOS</h2>
-                  <div className="grid gap-3">
-                    {batismosData.map((batismo) => (
-                      <div key={batismo.id} className="flex justify-between items-center border-b border-gray-200 pb-2">
-                        <div>
-                          <p className="font-semibold">{batismo.data}</p>
-                          <p className="text-sm text-gray-600">{batismo.localidade}</p>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-sm">{batismo.hora}</p>
-                          <p className="text-xs text-gray-500">Ancião: {batismo.anciao}</p>
-                        </div>
+                  {avisosData.length > 0 && (
+                    <div className="pt-4 border-t">
+                      <h3 className="text-lg font-semibold mb-4">Avisos</h3>
+                      <div className="space-y-4">
+                        {avisosData.map((aviso, index) => (
+                          <div key={aviso.id}>
+                            <p className="font-semibold">{index + 1}. {aviso.titulo}</p>
+                            <p className="text-sm text-muted-foreground whitespace-pre-line pl-4">
+                              {aviso.conteudo}
+                            </p>
+                          </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
+                    </div>
+                  )}
+
+                  {eventosData.length === 0 && avisosData.length === 0 && (
+                    <div className="text-center py-12 text-muted-foreground">
+                      Nenhum evento ou aviso para exibir
+                    </div>
+                  )}
                 </div>
-              )}
-
-              {/* Rodapé */}
-              <div className="mt-12 pt-6 border-t-2 border-gray-300 text-center text-sm text-gray-600">
-                <p>CCB Organiza - Sistema de Gestão Regional</p>
-                <p className="mt-1">Gerado em {formatDateBR(new Date())}</p>
-              </div>
-            </div>
-
-            {/* Botões de Ação */}
-            <div className="flex justify-between items-center mt-6 print:hidden">
-              <div className="flex items-center gap-2">
-                <Switch
-                  checked={showBatismos}
-                  onCheckedChange={setShowBatismos}
-                  id="show-batismos"
-                />
-                <Label htmlFor="show-batismos">Mostrar Batismos</Label>
-              </div>
-              <div className="flex gap-2">
-                <Button variant="outline" onClick={handleDownloadPDF} className="gap-2">
-                  <Download size={16} />
-                  Baixar PDF
-                </Button>
-                <Button onClick={handlePrint} className="gap-2">
-                  <Printer size={16} />
-                  Imprimir
-                </Button>
-              </div>
-            </div>
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
 
-        {/* Dialog Adicionar Evento */}
+        {/* Dialog Evento */}
         <Dialog open={isEventoDialogOpen} onOpenChange={setIsEventoDialogOpen}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Adicionar Evento à Lista</DialogTitle>
-              <DialogDescription>
-                Preencha os dados do evento
-              </DialogDescription>
+              <DialogTitle>{editingEvento ? "Editar Evento" : "Novo Evento"}</DialogTitle>
+              <DialogDescription>Preencha os dados do evento</DialogDescription>
             </DialogHeader>
-
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
-                <Label htmlFor="tipo">Tipo de Evento *</Label>
-                <Input
-                  id="tipo"
-                  value={formEvento.tipo}
-                  onChange={(e) => setFormEvento({ ...formEvento, tipo: e.target.value })}
-                  placeholder="Ex: Batismo, Ensaio Regional..."
-                />
+                <Label>Tipo *</Label>
+                <Input value={formEvento.tipo} onChange={(e) => setFormEvento({...formEvento, tipo: e.target.value})} placeholder="Ex: Batismo" />
               </div>
-
               <div className="grid gap-2">
-                <Label htmlFor="data">Data *</Label>
-                <Input
-                  id="data"
-                  type="date"
-                  value={formEvento.data}
-                  onChange={(e) => setFormEvento({ ...formEvento, data: e.target.value })}
-                />
+                <Label>Data *</Label>
+                <Input type="date" value={formEvento.data} onChange={(e) => setFormEvento({...formEvento, data: e.target.value})} />
               </div>
-
               <div className="grid gap-2">
-                <Label htmlFor="local">Local *</Label>
-                <Input
-                  id="local"
-                  value={formEvento.local}
-                  onChange={(e) => setFormEvento({ ...formEvento, local: e.target.value })}
-                  placeholder="Ex: Sede Regional"
-                />
+                <Label>Local *</Label>
+                <Input value={formEvento.local} onChange={(e) => setFormEvento({...formEvento, local: e.target.value})} placeholder="Ex: Sede Regional" />
               </div>
-
               <div className="grid gap-2">
-                <Label htmlFor="participantes">Participantes Esperados</Label>
-                <Input
-                  id="participantes"
-                  type="number"
-                  value={formEvento.participantes}
-                  onChange={(e) => setFormEvento({ ...formEvento, participantes: Number(e.target.value) })}
-                  placeholder="0"
-                  min="0"
-                />
+                <Label>Participantes *</Label>
+                <Input type="number" value={formEvento.participantes} onChange={(e) => setFormEvento({...formEvento, participantes: Number(e.target.value)})} />
               </div>
-
               <div className="grid gap-2">
-                <Label htmlFor="status">Status *</Label>
-                <Select
-                  value={formEvento.status}
-                  onValueChange={(value: "confirmado" | "pendente" | "realizado") =>
-                    setFormEvento({ ...formEvento, status: value })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
+                <Label>Status *</Label>
+                <Select value={formEvento.status} onValueChange={(value: any) => setFormEvento({...formEvento, status: value})}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="pendente">Pendente</SelectItem>
                     <SelectItem value="confirmado">Confirmado</SelectItem>
@@ -429,48 +466,33 @@ export default function Listas() {
                 </Select>
               </div>
             </div>
-
             <DialogFooter>
-              <Button variant="outline" onClick={() => setIsEventoDialogOpen(false)}>
-                Cancelar
-              </Button>
-              <Button onClick={handleAddEvento}>
-                Adicionar
-              </Button>
+              <Button variant="outline" onClick={() => setIsEventoDialogOpen(false)}>Cancelar</Button>
+              <Button onClick={handleSaveEvento}>Salvar</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
 
-        {/* Dialog Editar Avisos */}
+        {/* Dialog Aviso */}
         <Dialog open={isAvisoDialogOpen} onOpenChange={setIsAvisoDialogOpen}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Editar Avisos da Lista</DialogTitle>
-              <DialogDescription>
-                Os avisos aparecerão no topo da lista impressa
-              </DialogDescription>
+              <DialogTitle>{editingAviso ? "Editar Aviso" : "Novo Aviso"}</DialogTitle>
+              <DialogDescription>Preencha os dados do aviso</DialogDescription>
             </DialogHeader>
-
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
-                <Label htmlFor="avisos">Avisos</Label>
-                <Textarea
-                  id="avisos"
-                  value={avisos}
-                  onChange={(e) => setAvisos(e.target.value)}
-                  placeholder="Digite os avisos importantes que devem aparecer na lista..."
-                  rows={8}
-                />
+                <Label>Título *</Label>
+                <Input value={formAviso.titulo} onChange={(e) => setFormAviso({...formAviso, titulo: e.target.value})} placeholder="Ex: Importante" />
+              </div>
+              <div className="grid gap-2">
+                <Label>Conteúdo *</Label>
+                <Textarea value={formAviso.conteudo} onChange={(e) => setFormAviso({...formAviso, conteudo: e.target.value})} placeholder="Digite o aviso..." rows={5} />
               </div>
             </div>
-
             <DialogFooter>
-              <Button variant="outline" onClick={() => setIsAvisoDialogOpen(false)}>
-                Cancelar
-              </Button>
-              <Button onClick={handleSaveAvisos}>
-                Salvar Avisos
-              </Button>
+              <Button variant="outline" onClick={() => setIsAvisoDialogOpen(false)}>Cancelar</Button>
+              <Button onClick={handleSaveAviso}>Salvar</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
