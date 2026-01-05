@@ -27,10 +27,9 @@ jobs:
       with:
         node-version: '18'
         cache: 'npm'
-        cache-dependency-path: 'ccb-organiza-main/package-lock.json'
         
     - name: Install dependencies
-      run: cd ccb-organiza-main && npm ci
+      run: npm ci
     
     - name: Validate secrets
       run: |
@@ -60,7 +59,7 @@ jobs:
         fi
       
     - name: Build
-      run: cd ccb-organiza-main && npm run build
+      run: npm run build
       env:
         # Ensure that VITE_FIREBASE_API_KEY is set in your repository's secrets at
         # https://github.com/vinimacar/ccborganiza/settings/secrets/actions
@@ -83,7 +82,7 @@ jobs:
     - name: Upload artifact
       uses: actions/upload-pages-artifact@v3
       with:
-        path: './ccb-organiza-main/dist'
+        path: './dist'
 
   deploy:
     environment:
