@@ -138,7 +138,7 @@ export default function Relatorios() {
     });
 
     // Congregações
-    // @ts-ignore - jspdf-autotable adiciona lastAutoTable dinamicamente
+    // @ts-expect-error - jspdf-autotable adiciona lastAutoTable dinamicamente
     const lastY = doc.lastAutoTable.finalY + 10;
     doc.setFontSize(14);
     doc.text("Congregações", 14, lastY);
@@ -188,7 +188,7 @@ export default function Relatorios() {
     });
 
     // Resumo por ministério
-    // @ts-ignore - jspdf-autotable adiciona lastAutoTable dinamicamente
+    // @ts-expect-error - jspdf-autotable adiciona lastAutoTable dinamicamente
     const lastY2 = doc.lastAutoTable.finalY + 10;
     doc.setFontSize(14);
     doc.text("Resumo por Ministério", 14, lastY2);
@@ -199,7 +199,7 @@ export default function Relatorios() {
     ]);
 
     autoTable(doc, {
-      startY: lastY + 4,
+      startY: lastY2 + 4,
       head: [["Ministério", "Total"]],
       body: resumoData,
       theme: 'striped',
