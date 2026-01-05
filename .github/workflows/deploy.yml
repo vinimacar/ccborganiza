@@ -1,0 +1,98 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: 'ccb-organiza-main/package-lock.json'
+        
+    - name: Install dependencies
+      run: cd ccb-organiza-main && npm ci
+    
+    - name: Validate secrets
+      run: |
+        if [ -z "${{ secrets.VITE_FIREBASE_API_KEY }}" ]; then
+          echo "Error: VITE_FIREBASE_API_KEY secret is not set"
+          exit 1
+        fi
+        if [ -z "${{ secrets.VITE_FIREBASE_AUTH_DOMAIN }}" ]; then
+          echo "Error: VITE_FIREBASE_AUTH_DOMAIN secret is not set"
+          exit 1
+        fi
+        if [ -z "${{ secrets.VITE_FIREBASE_PROJECT_ID }}" ]; then
+          echo "Error: VITE_FIREBASE_PROJECT_ID secret is not set"
+          exit 1
+        fi
+        if [ -z "${{ secrets.VITE_FIREBASE_STORAGE_BUCKET }}" ]; then
+          echo "Error: VITE_FIREBASE_STORAGE_BUCKET secret is not set"
+          exit 1
+        fi
+        if [ -z "${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID }}" ]; then
+          echo "Error: VITE_FIREBASE_MESSAGING_SENDER_ID secret is not set"
+          exit 1
+        fi
+        if [ -z "${{ secrets.VITE_FIREBASE_APP_ID }}" ]; then
+          echo "Error: VITE_FIREBASE_APP_ID secret is not set"
+          exit 1
+        fi
+      
+    - name: Build
+      run: cd ccb-organiza-main && npm run build
+      env:
+        # Ensure that VITE_FIREBASE_API_KEY is set in your repository's secrets at
+        # https://github.com/vinimacar/ccborganiza/settings/secrets/actions
+        VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
+        VITE_FIREBASE_AUTH_DOMAIN: ${{ secrets.VITE_FIREBASE_AUTH_DOMAIN }}
+        # Ensure that VITE_FIREBASE_AUTH_DOMAIN is set in your repository's secrets at
+        # https://github.com/vinimacar/ccborganiza/settings/secrets/actions
+        VITE_FIREBASE_PROJECT_ID: ${{ secrets.VITE_FIREBASE_PROJECT_ID }}
+        # Ensure that VITE_FIREBASE_STORAGE_BUCKET is set in your repository's secrets at
+        # https://github.com/vinimacar/ccborganiza/settings/secrets/actions
+        VITE_FIREBASE_STORAGE_BUCKET: ${{ secrets.VITE_FIREBASE_STORAGE_BUCKET }}
+        VITE_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID }}
+        # Ensure that VITE_FIREBASE_APP_ID is set in your repository's secrets at
+        # https://github.com/vinimacar/ccborganiza/settings/secrets/actions
+        VITE_FIREBASE_APP_ID: ${{ secrets.VITE_FIREBASE_APP_ID }} # pragma: allowlist secret
+        
+    - name: Setup Pages
+      uses: actions/configure-pages@v4
+      
+    - name: Upload artifact
+      uses: actions/upload-pages-artifact@v3
+      with:
+        path: './ccb-organiza-main/dist'
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    
+    steps:
+    - name: Deploy to GitHub Pages
+      id: deployment
+      uses: actions/deploy-pages@v4
