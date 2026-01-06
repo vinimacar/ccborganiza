@@ -9,6 +9,11 @@
   [build.environment]
     NODE_VERSION = "18"
 
+# IMPORTANTE: Configure as variáveis de ambiente do Firebase no painel do Netlify
+# Site settings → Environment variables → Add a variable
+# Adicione todas as variáveis com prefixo VITE_FIREBASE_*
+# Veja CONFIGURAR_ENV_NETLIFY.md para instruções detalhadas
+
 # Configuração de redirects para SPA (Single Page Application)
 # O Netlify automaticamente NÃO redireciona arquivos existentes
 [[redirects]]
