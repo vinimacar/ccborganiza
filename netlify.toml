@@ -1,0 +1,32 @@
+[build]
+  # Comando de build
+  command = "npm run build"
+  
+  # Diretório de publicação (pasta que contém os arquivos buildados)
+  publish = "dist"
+  
+  # Variáveis de ambiente para o build
+  [build.environment]
+    NODE_VERSION = "18"
+
+# Configuração de redirects para SPA (Single Page Application)
+# O Netlify automaticamente NÃO redireciona arquivos existentes
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# Headers de segurança
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "no-referrer"
+    Permissions-Policy = "geolocation=(), microphone=(), camera=()"
+
+# Cache para assets estáticos
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
