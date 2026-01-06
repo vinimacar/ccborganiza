@@ -1,6 +1,6 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import type { User } from 'firebase/auth';
+import { createContext, useEffect, useState, ReactNode } from 'react';
 import {
+  getAuth,
   GoogleAuthProvider,
   signInWithPopup,
   signInWithEmailAndPassword,
@@ -9,8 +9,9 @@ import {
   onAuthStateChanged,
   setPersistence,
   browserLocalPersistence,
+  type User,
 } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import app from '@/lib/firebase';
 
 interface AuthContextType {
   user: User | null;
@@ -28,6 +29,7 @@ export { AuthContext };
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const auth = getAuth(app);
 
   useEffect(() => {
     // Configurar persistência
@@ -40,7 +42,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     return unsubscribe;
-  }, []);
+  }, [auth]);
 
   const signInWithGoogle = async () => {
     const provider = new GoogleAuthProvider();
