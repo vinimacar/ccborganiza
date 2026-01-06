@@ -41,16 +41,16 @@ interface Estatisticas {
 }
 
 export default function Dashboard() {
-  const { data: congregacoes, loading: loadingCongregacoes } = useFirestore<Congregacao>({ 
+  const { data: congregacoes, loading: loadingCongregacoes, error: errorCongregacoes } = useFirestore<Congregacao>({ 
     collectionName: 'congregacoes' 
   });
-  const { data: eventos, loading: loadingEventos } = useFirestore<Evento>({ 
+  const { data: eventos, loading: loadingEventos, error: errorEventos } = useFirestore<Evento>({ 
     collectionName: 'eventos' 
   });
-  const { data: cultos, loading: loadingCultos } = useFirestore<Culto>({ 
+  const { data: cultos, loading: loadingCultos, error: errorCultos } = useFirestore<Culto>({ 
     collectionName: 'cultos' 
   });
-  const { data: estatisticas } = useFirestore<Estatisticas>({ 
+  const { data: estatisticas, error: errorEstatisticas } = useFirestore<Estatisticas>({ 
     collectionName: 'estatisticas' 
   });
 
@@ -68,11 +68,46 @@ export default function Dashboard() {
 
   const stats = estatisticas[0] || { batismosAno: 0, ministerioAtivo: 0, criancasEBI: 0 };
   const isLoading = loadingCongregacoes || loadingEventos || loadingCultos;
+  const hasError = errorCongregacoes || errorEventos || errorCultos || errorEstatisticas;
+
   if (isLoading) {
     return (
       <MainLayout>
         <div className="animate-fade-in flex items-center justify-center min-h-[400px]">
           <p className="text-muted-foreground">Carregando dados...</p>
+        </div>
+      </MainLayout>
+    );
+  }
+
+  if (hasError) {
+    return (
+      <MainLayout>
+        <div className="animate-fade-in flex flex-col items-center justify-center min-h-[400px] space-y-4">
+          <div className="text-center space-y-2">
+            <h2 className="text-2xl font-bold text-destructive">Erro ao Carregar Dados</h2>
+            <p className="text-muted-foreground max-w-md">
+              Não foi possível acessar o banco de dados. Isso geralmente ocorre porque as regras de segurança do Firestore não estão configuradas.
+            </p>
+            <div className="mt-4 p-4 bg-muted rounded-lg text-left">
+              <p className="font-semibold mb-2">Como resolver:</p>
+              <ol className="list-decimal list-inside space-y-1 text-sm">
+                <li>Acesse o <a href="https://console.firebase.google.com/" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Firebase Console</a></li>
+                <li>Vá em <strong>Firestore Database → Regras</strong></li>
+                <li>Configure as regras de segurança (veja CONFIGURAR_FIRESTORE_RULES.md)</li>
+              </ol>
+            </div>
+            {hasError && (
+              <details className="mt-4 text-left max-w-md">
+                <summary className="cursor-pointer text-sm text-muted-foreground hover:text-foreground">
+                  Detalhes técnicos do erro
+                </summary>
+                <pre className="mt-2 p-2 bg-muted rounded text-xs overflow-auto">
+                  {hasError.message}
+                </pre>
+              </details>
+            )}
+          </div>
         </div>
       </MainLayout>
     );
