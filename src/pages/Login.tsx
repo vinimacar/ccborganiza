@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -27,10 +27,11 @@ export default function Login() {
         description: "Bem-vindo ao CCB Organiza",
       });
       navigate("/");
-    } catch (error: any) {
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Tente novamente mais tarde";
       toast({
         title: "Erro ao fazer login",
-        description: error.message || "Tente novamente mais tarde",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -57,19 +58,22 @@ export default function Login() {
         });
       }
       navigate("/");
-    } catch (error: any) {
+    } catch (error) {
       let errorMessage = "Tente novamente mais tarde";
       
-      if (error.code === "auth/invalid-email") {
-        errorMessage = "Email inválido";
-      } else if (error.code === "auth/user-not-found") {
-        errorMessage = "Usuário não encontrado";
-      } else if (error.code === "auth/wrong-password") {
-        errorMessage = "Senha incorreta";
-      } else if (error.code === "auth/email-already-in-use") {
-        errorMessage = "Este email já está em uso";
-      } else if (error.code === "auth/weak-password") {
-        errorMessage = "A senha deve ter pelo menos 6 caracteres";
+      if (error && typeof error === 'object' && 'code' in error) {
+        const firebaseError = error as { code: string };
+        if (firebaseError.code === "auth/invalid-email") {
+          errorMessage = "Email inválido";
+        } else if (firebaseError.code === "auth/user-not-found") {
+          errorMessage = "Usuário não encontrado";
+        } else if (firebaseError.code === "auth/wrong-password") {
+          errorMessage = "Senha incorreta";
+        } else if (firebaseError.code === "auth/email-already-in-use") {
+          errorMessage = "Este email já está em uso";
+        } else if (firebaseError.code === "auth/weak-password") {
+          errorMessage = "A senha deve ter pelo menos 6 caracteres";
+        }
       }
 
       toast({
