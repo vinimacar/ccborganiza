@@ -1,0 +1,90 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Regra temporária para desenvolvimento - PERMITE TUDO
+    // ⚠️ ATENÇÃO: Altere estas regras em produção!
+    match /{document=**} {
+      allow read, write: if true;
+    }
+    
+    /* 
+    // ===== REGRAS DE PRODUÇÃO (Descomente quando estiver pronto) =====
+    
+    // Função auxiliar para verificar se o usuário está autenticado
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    // Função para verificar se o usuário é o dono do documento
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+    
+    // Congregações - Leitura pública, escrita apenas autenticados
+    match /congregacoes/{congregacaoId} {
+      allow read: if true;
+      allow write: if isSignedIn();
+    }
+    
+    // Ministério - Leitura pública, escrita apenas autenticados
+    match /ministerio/{ministerioId} {
+      allow read: if true;
+      allow write: if isSignedIn();
+    }
+    
+    // Agenda - Leitura pública, escrita apenas autenticados
+    match /agenda/{agendaId} {
+      allow read: if true;
+      allow write: if isSignedIn();
+    }
+    
+    // Reforços - Leitura pública, escrita apenas autenticados
+    match /reforcos/{reforcoId} {
+      allow read: if true;
+      allow write: if isSignedIn();
+    }
+    
+    // Listas - Leitura pública, escrita apenas autenticados
+    match /listas/{listaId} {
+      allow read: if true;
+      allow write: if isSignedIn();
+    }
+    
+    // Eventos/Listas - Leitura pública, escrita apenas autenticados
+    match /eventos_listas/{eventoId} {
+      allow read: if true;
+      allow write: if isSignedIn();
+    }
+    
+    // Avisos - Leitura pública, escrita apenas autenticados
+    match /avisos/{avisoId} {
+      allow read: if true;
+      allow write: if isSignedIn();
+    }
+    
+    // EBI Atividades - Leitura pública, escrita apenas autenticados
+    match /ebi_atividades/{atividadeId} {
+      allow read: if true;
+      allow write: if isSignedIn();
+    }
+    
+    // Contatos - Leitura pública, escrita apenas autenticados
+    match /contatos/{contatoId} {
+      allow read: if true;
+      allow write: if isSignedIn();
+    }
+    
+    // Relatórios - Apenas usuários autenticados
+    match /relatorios/{relatorioId} {
+      allow read, write: if isSignedIn();
+    }
+    
+    // Usuários - Apenas o próprio usuário pode ler/escrever seus dados
+    match /users/{userId} {
+      allow read, write: if isSignedIn() && isOwner(userId);
+    }
+    */
+  }
+}
